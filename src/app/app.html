@@ -1,0 +1,100 @@
+<header class="portada">
+  <h1>Localización de fugas en la red de acueducto</h1>
+  <p class="ayuda">Carga las mediciones del día y obtén la sección del subsuelo con las zonas a revisar.</p>
+</header>
+
+<main>
+  <app-carga />
+
+  @if (listo) {
+    <app-mediciones />
+
+    <section class="tarjeta">
+      <h2>3. Calcular la sección</h2>
+
+      <div class="controles">
+        <label class="campo grande">
+          Nivel de suavizado: <strong>{{ svc.lambda().toFixed(2) }}</strong>
+          <input
+            type="range"
+            min="0.01"
+            max="10"
+            step="0.01"
+            [value]="svc.lambda()"
+            (input)="alMoverLambda($any($event.target).value)"
+          />
+          <span class="pistas"><span>Detallado</span><span>Suave</span></span>
+        </label>
+
+        <label class="campo">
+          Modo de cálculo
+          <select [value]="svc.metodo()" (change)="alCambiarMetodo($event)">
+            <option value="rapido">Rápido</option>
+            <option value="refinado">Refinado</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="ayuda">Al cambiar el suavizado mientras corre, la cuenta se reinicia sola tomando el resultado anterior como base.</p>
+
+      <div class="fila">
+        <button type="button" class="boton" (click)="svc.calcular()" [disabled]="svc.estado() === 'calculando'">Calcular</button>
+        <button type="button" class="boton secundario" (click)="svc.detener()" [disabled]="svc.estado() !== 'calculando'">
+          Detener
+        </button>
+        <button type="button" class="boton secundario" (click)="svc.reiniciarResultado()">Empezar de nuevo</button>
+      </div>
+
+      @if (svc.estado() !== 'inactivo') {
+        <div class="progreso">
+          <div class="barra-progreso"><div [style.width.%]="avance"></div></div>
+          <p class="estado">
+            {{ mensaje }}
+            @if (svc.estado() === 'calculando') {
+              <span>&middot; paso {{ svc.iteracion() }} de {{ svc.iteracionesObjetivo() }}</span>
+            }
+            <span>&middot; {{ (svc.tiempoMs() / 1000).toFixed(1) }} s</span>
+          </p>
+        </div>
+      }
+
+      @if (svc.aviso()) {
+        <p class="aviso">{{ svc.aviso() }}</p>
+      }
+
+      <div class="comparacion">
+        <div class="encabezado">
+          <h3>Comparación de modos</h3>
+          <button type="button" class="boton secundario" (click)="svc.comparar()">Comparar</button>
+        </div>
+        @if (svc.comparacion().length) {
+          <table class="compacta">
+            <thead>
+              <tr><th>Modo</th><th>Pasos</th><th>Tiempo</th></tr>
+            </thead>
+            <tbody>
+              @for (c of svc.comparacion(); track c.metodo) {
+                <tr>
+                  <td>{{ c.metodo === 'rapido' ? 'Rápido' : 'Refinado' }}</td>
+                  <td>{{ c.iteraciones }}</td>
+                  <td>{{ (c.tiempo / 1000).toFixed(1) }} s</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <p class="ayuda">Todavía no hay tiempos medidos.</p>
+        }
+      </div>
+    </section>
+
+    <app-seccion />
+    <app-curva />
+
+    <section class="tarjeta">
+      <h2>6. Guardar el resultado</h2>
+      <p class="ayuda">Guarda un archivo con las mediciones usadas, los ajustes aplicados y los pasos dados, por si más adelante hay que revisar el trabajo.</p>
+      <button type="button" class="boton" (click)="svc.descargarInforme()" [disabled]="svc.estado() === 'inactivo'">Descargar informe</button>
+    </section>
+  }
+</main>
